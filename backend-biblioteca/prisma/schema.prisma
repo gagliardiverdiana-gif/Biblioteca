@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum RuoloUtente {
+  USER
+  ADMIN
+}
+
+enum StatoNoleggio {
+  ATTIVO
+  RESTITUITO
+  SCADUTO
+}
+
+model Utente {
+  id           Int         @id @default(autoincrement())
+  nomeCompleto String
+  email        String      @unique
+  password     String
+  ruolo        RuoloUtente @default(USER)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  noleggi      Noleggio[]
+  cartaFedelta CartaFedelta?
+}
+
+model Libro {
+  id               Int      @id @default(autoincrement())
+  titolo           String
+  autore           String
+  genere           String?
+  descrizione      String?  @db.Text
+  copieTotali      Int
+  copieDisponibili Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  noleggi Noleggio[]
+
+  @@unique([titolo, autore])
+}
+
+model Noleggio {
+  id               Int           @id @default(autoincrement())
+  utenteId         Int
+  libroId          Int
+  dataNoleggio     DateTime      @default(now())
+  dataScadenza     DateTime
+  dataRestituzione DateTime?
+  stato            StatoNoleggio @default(ATTIVO)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  utente Utente @relation(fields: [utenteId], references: [id])
+  libro  Libro  @relation(fields: [libroId], references: [id])
+
+  movimentiFedelta MovimentoFedelta[]
+}
+
+model CartaFedelta {
+  id          Int      @id @default(autoincrement())
+  utenteId    Int      @unique
+  puntiTotali Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  utente    Utente             @relation(fields: [utenteId], references: [id])
+  movimenti MovimentoFedelta[]
+}
+
+model MovimentoFedelta {
+  id             Int      @id @default(autoincrement())
+  cartaFedeltaId Int
+  noleggioId     Int?
+  punti          Int
+  motivazione    String
+  dataMovimento  DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  cartaFedelta CartaFedelta @relation(fields: [cartaFedeltaId], references: [id])
+  noleggio     Noleggio?    @relation(fields: [noleggioId], references: [id])
+}
